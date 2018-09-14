@@ -6,11 +6,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
 )
+
+// Will prevent data races by making sure blocks aren't made at the same time
+var mutex = &sync.Mutex{}
 
 type Message struct {
 	Msg string
@@ -62,11 +66,10 @@ func handleWriteBlock(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	newBlock, err := generateBlock(Blockchain[len(Blockchain)-1], m.Msg)
-	if err != nil {
-		respondWithJSON(w, r, http.StatusInternalServerError, m)
-		return
-	}
+	mutex.Lock()
+	newBlock, _ := generateBlock(Blockchain[len(Blockchain)-1], m.Msg)
+	mutex.Unlock()
+
 	if isBlockValid(newBlock, Blockchain[len(Blockchain)-1]) {
 		newBlockchain := append(Blockchain, newBlock)
 		replaceChain(newBlockchain)

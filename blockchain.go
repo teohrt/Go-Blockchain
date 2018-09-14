@@ -3,19 +3,25 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/joho/godotenv"
 )
 
+const difficulty = 1
+
 type Block struct {
-	Index     int    // Position of the data recorded in the blockchain
-	Timestamp string // The time the data is written
-	Msg       string // Anything
-	Hash      string // SHA256 identifier representing this data record
-	PrevHash  string // SHA256 identifier of the previous record in the chain
+	Index      int    // Position of the data recorded in the blockchain
+	Timestamp  string // The time the data is written
+	Msg        string // Anything
+	Hash       string // SHA256 identifier representing this data record
+	PrevHash   string // SHA256 identifier of the previous record in the chain
+	Nonce      string // Increments during mining process to facilitate hashing
+	Difficulty int    // Constant defining the number of 0's in the leading hash
 }
 
 var Blockchain []Block
@@ -28,8 +34,8 @@ func main() {
 
 	go func() {
 		t := time.Now()
-		genesisBlock := Block{0, t.String(), "GENESIS BLOCK!!!!", "", ""}
-		// This prints structs to the console for useful debugging
+		genesisBlock := Block{0, t.String(), "GENESIS BLOCK", "", "", "", difficulty}
+		// Prints structs to the console for useful debugging
 		spew.Dump(genesisBlock)
 		Blockchain = append(Blockchain, genesisBlock)
 	}()
@@ -56,9 +62,30 @@ func generateBlock(oldBlock Block, Msg string) (Block, error) {
 	newBlock.Timestamp = t.String()
 	newBlock.Msg = Msg
 	newBlock.PrevHash = oldBlock.Hash
-	newBlock.Hash = calculateHash(newBlock)
+	newBlock.Difficulty = difficulty
 
+	// Proof of work!
+	for i := 0; ; i++ {
+		hex := fmt.Sprintf("%x", i)
+		newBlock.Nonce = hex
+		if !isHashValid(calculateHash(newBlock), newBlock.Difficulty) {
+			fmt.Println(calculateHash(newBlock), " do more work!")
+			// Work
+			time.Sleep(time.Second)
+			continue
+		} else {
+			fmt.Println(calculateHash(newBlock), " mined!")
+			newBlock.Hash = calculateHash(newBlock)
+			break
+		}
+
+	}
 	return newBlock, nil
+}
+
+func isHashValid(hash string, difficulty int) bool {
+	prefix := strings.Repeat("0", difficulty)
+	return strings.HasPrefix(hash, prefix)
 }
 
 // Makes sure there's no funny business
