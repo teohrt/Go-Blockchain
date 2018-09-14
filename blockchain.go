@@ -45,7 +45,7 @@ func main() {
 
 func calculateHash(block Block) string {
 	// Makes a hash out of the contents of the block
-	record := string(block.Index) + block.Timestamp + string(block.Msg) + block.PrevHash
+	record := string(block.Index) + block.Timestamp + string(block.Msg) + block.PrevHash + block.Nonce
 	h := sha256.New()
 	h.Write([]byte(record))
 	hashed := h.Sum(nil)
